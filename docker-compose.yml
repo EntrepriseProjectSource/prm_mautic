@@ -1,0 +1,71 @@
+version: '3'
+
+services:
+  nginx-mao:
+    image: nginx:latest
+#    image: httpd
+    container_name: nginx-mao
+    depends_on:
+      - engine-mao
+    ports:
+      - 80:80
+    volumes:
+      - $PWD/:/srv/api:ro,cached
+      - $PWD/docker/nginx/api.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      - default
+
+  engine-mao:
+    image: bitnami/php-fpm
+    container_name: engine-mao
+    depends_on:
+      - percona-mao
+    volumes:
+      - $PWD/:/srv/api:rw,cached
+      - $PWD/docker/engine/php.ini:/usr/local/etc/php/conf.d/custom.ini:ro
+      - ~/.gitconfig:/root/.gitconfig:ro
+      - ~/.ssh/id_rsa:/root/.ssh/id_rsa:ro
+    working_dir: /srv/api
+    networks:
+      - default
+
+  phpmyadmin-mao:
+    image: phpmyadmin/phpmyadmin:latest
+    container_name: phpmyadmin-mao
+    depends_on:
+      - percona-mao
+    ports:
+      - 8082:80
+    environment:
+      - PMA_ARBITRARY=1
+      - PMA_PORT=3306
+      - PMA_HOST=percona-mao
+      - PMA_USER=root
+      - PMA_PASSWORD=dev
+    networks:
+      - default
+
+  percona-mao:
+#    image: percona:5.7
+    image: mariadb
+    ports:
+    - "3309:3306"
+    #    container_name: percona-mao
+    container_name: mariadb-mao
+    environment:
+      - "MYSQL_ROOT_PASSWORD=dev"
+      - "MYSQL_DATABASE=prm_database"
+      - "MYSQL_USER=admin"
+      - "MYSQL_PASSWORD=admin"
+    networks:
+      - default
+
+volumes:
+  db:
+    driver: local
+
+networks:
+  default:
+    external:
+      name: docap
+
